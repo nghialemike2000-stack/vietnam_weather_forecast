@@ -1,0 +1,12 @@
+{
+    "province": "Hue",
+    "model_rank": 1,
+    "algorithm": "XGBoost",
+    "lookback": 10,
+    "forecast_horizon": 1,
+    "accuracy": 0.6641221374045801,
+    "precision": 0.627906976744186,
+    "recall": 0.8181818181818182,
+    "f1": 0.7105263157894737,
+    "roc_auc": 0.7251748251748252
+}

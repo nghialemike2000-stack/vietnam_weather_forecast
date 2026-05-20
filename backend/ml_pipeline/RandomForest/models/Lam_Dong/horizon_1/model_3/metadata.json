@@ -1,0 +1,12 @@
+{
+    "province": "Lam_Dong",
+    "model_rank": 3,
+    "algorithm": "RandomForest",
+    "lookback": 7,
+    "forecast_horizon": 1,
+    "accuracy": 0.6717557251908397,
+    "precision": 0.7407407407407407,
+    "recall": 0.5797101449275363,
+    "f1": 0.6504065040650406,
+    "roc_auc": 0.6711079943899017
+}

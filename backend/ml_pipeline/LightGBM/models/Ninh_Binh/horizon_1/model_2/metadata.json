@@ -1,0 +1,12 @@
+{
+    "province": "Ninh_Binh",
+    "model_rank": 2,
+    "algorithm": "LightGBM",
+    "lookback": 10,
+    "forecast_horizon": 1,
+    "accuracy": 0.7251908396946565,
+    "precision": 0.7570093457943925,
+    "recall": 0.8901098901098901,
+    "f1": 0.8181818181818182,
+    "roc_auc": 0.6277472527472527
+}

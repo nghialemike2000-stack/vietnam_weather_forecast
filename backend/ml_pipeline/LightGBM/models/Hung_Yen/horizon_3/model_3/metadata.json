@@ -1,0 +1,12 @@
+{
+    "province": "Hung_Yen",
+    "model_rank": 3,
+    "algorithm": "LightGBM",
+    "lookback": 5,
+    "forecast_horizon": 3,
+    "accuracy": 0.6821705426356589,
+    "precision": 0.7256637168141593,
+    "recall": 0.8913043478260869,
+    "f1": 0.8,
+    "roc_auc": 0.5047003525264394
+}

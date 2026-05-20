@@ -1,0 +1,12 @@
+{
+    "province": "Thai_Nguyen",
+    "model_rank": 2,
+    "algorithm": "XGBoost",
+    "lookback": 30,
+    "forecast_horizon": 7,
+    "accuracy": 0.704,
+    "precision": 0.7327586206896551,
+    "recall": 0.9340659340659341,
+    "f1": 0.821256038647343,
+    "roc_auc": 0.49127343244990307
+}

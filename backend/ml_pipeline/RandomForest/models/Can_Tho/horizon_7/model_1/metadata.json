@@ -1,0 +1,12 @@
+{
+    "province": "Can_Tho",
+    "model_rank": 1,
+    "algorithm": "RandomForest",
+    "lookback": 30,
+    "forecast_horizon": 7,
+    "accuracy": 0.544,
+    "precision": 0.6197183098591549,
+    "recall": 0.5945945945945946,
+    "f1": 0.6068965517241379,
+    "roc_auc": 0.5638579756226816
+}

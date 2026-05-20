@@ -1,0 +1,12 @@
+{
+    "province": "Dien_Bien",
+    "model_rank": 2,
+    "algorithm": "LogisticRegression",
+    "lookback": 5,
+    "forecast_horizon": 3,
+    "accuracy": 0.6511627906976745,
+    "precision": 0.7435897435897436,
+    "recall": 0.453125,
+    "f1": 0.5631067961165048,
+    "roc_auc": 0.6161057692307692
+}

@@ -1,0 +1,12 @@
+{
+    "province": "Lang_Son",
+    "model_rank": 3,
+    "algorithm": "RandomForest",
+    "lookback": 3,
+    "forecast_horizon": 1,
+    "accuracy": 0.6564885496183206,
+    "precision": 0.6907216494845361,
+    "recall": 0.8170731707317073,
+    "f1": 0.7486033519553073,
+    "roc_auc": 0.646590343454455
+}

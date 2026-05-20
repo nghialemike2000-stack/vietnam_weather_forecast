@@ -1,0 +1,12 @@
+{
+    "province": "Can_Tho",
+    "model_rank": 2,
+    "algorithm": "LogisticRegression",
+    "lookback": 15,
+    "forecast_horizon": 7,
+    "accuracy": 0.504,
+    "precision": 0.8333333333333334,
+    "recall": 0.20270270270270271,
+    "f1": 0.32608695652173914,
+    "roc_auc": 0.4939056703762586
+}

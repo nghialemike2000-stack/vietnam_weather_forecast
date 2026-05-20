@@ -1,0 +1,12 @@
+{
+    "province": "Lao_Cai",
+    "model_rank": 1,
+    "algorithm": "LogisticRegression",
+    "lookback": 30,
+    "forecast_horizon": 7,
+    "accuracy": 0.568,
+    "precision": 0.7464788732394366,
+    "recall": 0.5955056179775281,
+    "f1": 0.6625,
+    "roc_auc": 0.5324594257178527
+}

@@ -1,0 +1,1700 @@
+======================================== 
+FILE: D:\B ch khoa\Intelligence System\Weather Forecast Dashboard UI\backend\main.py 
+======================================== 
+import json
+from datetime import date, datetime, timedelta
+from enum import Enum
+from functools import lru_cache
+from pathlib import Path
+from typing import Optional
+from zoneinfo import ZoneInfo
+
+import joblib
+import pandas as pd
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+
+try:
+    from fetch_data.fetch import locations, update_all_datasets
+except ModuleNotFoundError:
+    from backend.fetch_data.fetch import locations, update_all_datasets
+
+
+APP_TZ = ZoneInfo("Asia/Bangkok")
+BACKEND_ROOT = Path(__file__).resolve().parent
+DATA_ROOT = BACKEND_ROOT / "load_weather_data" / "all"
+ML_ROOT = BACKEND_ROOT / "ml_pipeline"
+
+FEATURE_COLUMNS = [
+    "temp",
+    "humidity",
+    "wind_speed",
+    "cloud_cover",
+    "pressure",
+]
+
+SUPPORTED_HORIZONS = (1, 3, 7)
+
+PROVINCE_LABELS = {
+    "An_Giang": "An Giang",
+    "Bac_Ninh": "Bac Ninh",
+    "Can_Tho": "Can Tho",
+    "Cao_Bang": "Cao Bang",
+    "Ca_Mau": "Ca Mau",
+    "Dak_Lak": "Dak Lak",
+    "Da_Nang": "Da Nang",
+    "Dien_Bien": "Dien Bien",
+    "Dong_Nai": "Dong Nai",
+    "Dong_Thap": "Dong Thap",
+    "Gia_Lai": "Gia Lai",
+    "Hai_Phong": "Hai Phong",
+    "Ha_Noi": "Ha Noi",
+    "Ha_Tinh": "Ha Tinh",
+    "Ho_Chi_Minh": "Ho Chi Minh",
+    "Hue": "Hue",
+    "Hung_Yen": "Hung Yen",
+    "Khanh_Hoa": "Khanh Hoa",
+    "Lai_Chau": "Lai Chau",
+    "Lam_Dong": "Lam Dong",
+    "Lang_Son": "Lang Son",
+    "Lao_Cai": "Lao Cai",
+    "Nghe_An": "Nghe An",
+    "Ninh_Binh": "Ninh Binh",
+    "Phu_Tho": "Phu Tho",
+    "Quang_Ngai": "Quang Ngai",
+    "Quang_Ninh": "Quang Ninh",
+    "Quang_Tri": "Quang Tri",
+    "Son_La": "Son La",
+    "Tay_Ninh": "Tay Ninh",
+    "Thai_Nguyen": "Thai Nguyen",
+    "Thanh_Hoa": "Thanh Hoa",
+    "Tuyen_Quang": "Tuyen Quang",
+    "Vinh_Long": "Vinh Long",
+}
+
+
+class ProvinceEnum(str, Enum):
+    An_Giang = "An_Giang"
+    Bac_Ninh = "Bac_Ninh"
+    Can_Tho = "Can_Tho"
+    Cao_Bang = "Cao_Bang"
+    Ca_Mau = "Ca_Mau"
+    Dak_Lak = "Dak_Lak"
+    Da_Nang = "Da_Nang"
+    Dien_Bien = "Dien_Bien"
+    Dong_Nai = "Dong_Nai"
+    Dong_Thap = "Dong_Thap"
+    Gia_Lai = "Gia_Lai"
+    Hai_Phong = "Hai_Phong"
+    Ha_Noi = "Ha_Noi"
+    Ha_Tinh = "Ha_Tinh"
+    Ho_Chi_Minh = "Ho_Chi_Minh"
+    Hue = "Hue"
+    Hung_Yen = "Hung_Yen"
+    Khanh_Hoa = "Khanh_Hoa"
+    Lai_Chau = "Lai_Chau"
+    Lam_Dong = "Lam_Dong"
+    Lang_Son = "Lang_Son"
+    Lao_Cai = "Lao_Cai"
+    Nghe_An = "Nghe_An"
+    Ninh_Binh = "Ninh_Binh"
+    Phu_Tho = "Phu_Tho"
+    Quang_Ngai = "Quang_Ngai"
+    Quang_Ninh = "Quang_Ninh"
+    Quang_Tri = "Quang_Tri"
+    Son_La = "Son_La"
+    Tay_Ninh = "Tay_Ninh"
+    Thai_Nguyen = "Thai_Nguyen"
+    Thanh_Hoa = "Thanh_Hoa"
+    Tuyen_Quang = "Tuyen_Quang"
+    Vinh_Long = "Vinh_Long"
+
+
+class AlgorithmEnum(str, Enum):
+    Best = "Best"
+    LightGBM = "LightGBM"
+    LogisticRegression = "LogisticRegression"
+    RandomForest = "RandomForest"
+    XGBoost = "XGBoost"
+
+
+class HorizonEnum(int, Enum):
+    one = 1
+    three = 3
+    seven = 7
+
+
+class PredictionMode(str, Enum):
+    forecast = "forecast"
+    evaluation = "evaluation"
+
+
+class WeatherRequest(BaseModel):
+    province: ProvinceEnum
+    algorithm: AlgorithmEnum = AlgorithmEnum.Best
+    horizon: HorizonEnum = HorizonEnum.one
+    mode: PredictionMode = PredictionMode.forecast
+    evaluation_date: Optional[date] = None
+
+
+class ExplorationDateRequest(BaseModel):
+    target_date: date
+
+
+app = FastAPI(title="Vietnam Weather Forecast API", version="1.0.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+def today_local() -> date:
+    return datetime.now(APP_TZ).date()
+
+
+def location_by_province(province: str) -> dict:
+    for location in locations:
+        if location["destination"] == province:
+            return location
+    raise HTTPException(status_code=404, detail=f"Location not found for {province}")
+
+
+def model_horizon_for_day(day_number: int) -> int:
+    for horizon in SUPPORTED_HORIZONS:
+        if day_number <= horizon:
+            return horizon
+    return SUPPORTED_HORIZONS[-1]
+
+
+def metadata_sort_key(candidate: dict):
+    metadata = candidate["metadata"]
+    return (
+        float(metadata.get("f1", 0)),
+        float(metadata.get("roc_auc", 0)),
+        float(metadata.get("accuracy", 0)),
+    )
+
+
+def iter_model_candidates(province: str, algorithm: str, horizon: int):
+    algorithms = [
+        "LightGBM",
+        "LogisticRegression",
+        "RandomForest",
+        "XGBoost",
+    ] if algorithm == AlgorithmEnum.Best.value else [algorithm]
+
+    for algorithm_name in algorithms:
+        model_root = ML_ROOT / algorithm_name / "models" / province / f"horizon_{horizon}"
+        if not model_root.exists():
+            continue
+
+        for metadata_path in model_root.glob("model_*/metadata.json"):
+            model_path = metadata_path.parent / "model.pkl"
+            if not model_path.exists():
+                continue
+
+            with open(metadata_path, "r", encoding="utf-8") as file:
+                metadata = json.load(file)
+            yield {
+                "algorithm": algorithm_name,
+                "model_path": model_path,
+                "metadata_path": metadata_path,
+                "metadata": metadata,
+            }
+
+
+def select_model(province: str, algorithm: str, horizon: int):
+    candidates = list(iter_model_candidates(province, algorithm, horizon))
+    if not candidates:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No model found for province={province}, algorithm={algorithm}, horizon={horizon}",
+        )
+
+    return max(candidates, key=metadata_sort_key)
+
+
+@lru_cache(maxsize=256)
+def load_model(model_path: str):
+    return joblib.load(model_path)
+
+
+def load_weather_dataframe(province: str) -> pd.DataFrame:
+    csv_path = DATA_ROOT / province / "all_weather.csv"
+    if not csv_path.exists():
+        raise HTTPException(status_code=404, detail=f"Dataset not found: {csv_path}")
+
+    df = pd.read_csv(csv_path)
+    if df.empty:
+        raise HTTPException(status_code=404, detail=f"Dataset is empty for {province}")
+
+    df["date"] = pd.to_datetime(df["date"]).dt.date
+    df = df.sort_values("date").drop_duplicates(subset=["date"], keep="last")
+    df = df.reset_index(drop=True)
+
+    return df
+
+
+def province_weather_on_date(province: str, target_date: date):
+    df = load_weather_dataframe(province)
+    rows = df[df["date"] == target_date]
+    if rows.empty:
+        return None
+
+    row = rows.iloc[0]
+    location = location_by_province(province)
+
+    return {
+        "province": province,
+        "province_label": PROVINCE_LABELS.get(province, province),
+        "date": target_date.isoformat(),
+        "latitude": float(location["latitude"]),
+        "longitude": float(location["longitude"]),
+        "temp": float(row["temp"]),
+        "humidity": float(row["humidity"]),
+        "wind_speed": float(row["wind_speed"]),
+        "cloud_cover": float(row["cloud_cover"]),
+        "pressure": float(row["pressure"]),
+        "rain": int(row["rain"]),
+    }
+
+
+def build_temperature_distribution(rows: list[dict]):
+    bins = [
+        {"range": "<20 C", "min": None, "max": 20, "count": 0, "provinces": []},
+        {"range": "20-25 C", "min": 20, "max": 25, "count": 0, "provinces": []},
+        {"range": "25-30 C", "min": 25, "max": 30, "count": 0, "provinces": []},
+        {"range": "30-35 C", "min": 30, "max": 35, "count": 0, "provinces": []},
+        {"range": "35-40 C", "min": 35, "max": 40, "count": 0, "provinces": []},
+        {"range": ">=40 C", "min": 40, "max": None, "count": 0, "provinces": []},
+    ]
+
+    for row in rows:
+        temp = row["temp"]
+
+        for bucket in bins:
+            lower_ok = bucket["min"] is None or temp >= bucket["min"]
+            upper_ok = bucket["max"] is None or temp < bucket["max"]
+
+            if lower_ok and upper_ok:
+                bucket["count"] += 1
+                bucket["provinces"].append(row["province_label"])
+                break
+
+    return [
+        {
+            "range": bucket["range"],
+            "count": bucket["count"],
+            "provinces": bucket["provinces"],
+        }
+        for bucket in bins
+    ]
+
+def build_range_distribution(rows, field, bins):
+    prepared_bins = []
+
+    for bucket in bins:
+        prepared_bins.append({
+            **bucket,
+            "count": 0,
+            "provinces": [],
+        })
+
+    for row in rows:
+        value = row[field]
+
+        for bucket in prepared_bins:
+            lower_ok = bucket["min"] is None or value >= bucket["min"]
+            upper_ok = bucket["max"] is None or value <= bucket["max"]
+
+            if lower_ok and upper_ok:
+                bucket["count"] += 1
+                bucket["provinces"].append(row["province_label"])
+                break
+
+    return [
+        {
+            "range": bucket["range"],
+            "count": bucket["count"],
+            "provinces": bucket["provinces"],
+        }
+        for bucket in prepared_bins
+    ]
+
+def build_feature_frame(df: pd.DataFrame, anchor_date: date, lookback: int, model) -> pd.DataFrame:
+    history = df[df["date"] < anchor_date].tail(lookback)
+    if len(history) < lookback:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Not enough lookback data before {anchor_date}. "
+                f"Need {lookback} rows, found {len(history)}."
+            ),
+        )
+
+    row = {}
+    for lag in range(1, lookback + 1):
+        source = history.iloc[-lag]
+        for feature in FEATURE_COLUMNS:
+            row[f"{feature}_lag_{lag}"] = float(source[feature])
+
+    expected_columns = getattr(model, "feature_names_in_", None)
+    if expected_columns is not None:
+        return pd.DataFrame([row], columns=list(expected_columns))
+
+    return pd.DataFrame([row])
+
+
+def latest_observation_before(df: pd.DataFrame, anchor_date: date):
+    history = df[df["date"] < anchor_date]
+    if history.empty:
+        return None
+    row = history.iloc[-1]
+    return {
+        "date": row["date"].isoformat(),
+        "temp": float(row["temp"]),
+        "humidity": float(row["humidity"]),
+        "wind_speed": float(row["wind_speed"]),
+        "cloud_cover": float(row["cloud_cover"]),
+        "pressure": float(row["pressure"]),
+        "rain": int(row["rain"]),
+    }
+
+
+def actual_rain_for_date(df: pd.DataFrame, target_date: date):
+    actual_rows = df[df["date"] == target_date]
+    if actual_rows.empty:
+        return None
+    return int(actual_rows.iloc[0]["rain"])
+
+
+def predict_one(df: pd.DataFrame, province: str, algorithm: str, anchor_date: date, target_date: date, day_number: int):
+    model_horizon = model_horizon_for_day(day_number)
+    selected = select_model(province, algorithm, model_horizon)
+    metadata = selected["metadata"]
+    lookback = int(metadata["lookback"])
+    model = load_model(str(selected["model_path"]))
+    features = build_feature_frame(df, anchor_date, lookback, model)
+
+    predicted_class = int(model.predict(features)[0])
+    rain_probability = None
+
+    if hasattr(model, "predict_proba"):
+        probabilities = model.predict_proba(features)[0]
+        classes = list(model.classes_)
+        rain_index = classes.index(1) if 1 in classes else len(probabilities) - 1
+        rain_probability = float(probabilities[rain_index])
+    else:
+        rain_probability = float(predicted_class)
+
+    actual_rain = actual_rain_for_date(df, target_date)
+
+    return {
+        "date": target_date.isoformat(),
+        "day_number": day_number,
+        "predicted_rain": predicted_class,
+        "result": "rain" if predicted_class == 1 else "no-rain",
+        "rain_probability": round(rain_probability * 100, 2),
+        "confidence": round(max(rain_probability, 1 - rain_probability) * 100, 2),
+        "actual_rain": actual_rain,
+        "is_correct": None if actual_rain is None else actual_rain == predicted_class,
+        "algorithm": metadata.get("algorithm", selected["algorithm"]),
+        "model_horizon": int(metadata.get("forecast_horizon", model_horizon)),
+        "model_rank": int(metadata.get("model_rank", 0)),
+        "lookback": lookback,
+        "metrics": {
+            "accuracy": round(float(metadata.get("accuracy", 0)) * 100, 2),
+            "precision": round(float(metadata.get("precision", 0)) * 100, 2),
+            "recall": round(float(metadata.get("recall", 0)) * 100, 2),
+            "f1": round(float(metadata.get("f1", 0)) * 100, 2),
+            "roc_auc": round(float(metadata.get("roc_auc", 0)) * 100, 2),
+        },
+    }
+
+
+@app.get("/api/health")
+def health_check():
+    return {"status": "ok", "today": today_local().isoformat()}
+
+
+@app.get("/api/provinces")
+def get_provinces():
+    return [
+        {
+            "value": location["destination"],
+            "label": PROVINCE_LABELS.get(location["destination"], location["destination"]),
+            "latitude": location["latitude"],
+            "longitude": location["longitude"],
+        }
+        for location in locations
+    ]
+
+
+@app.post("/api/fetch-all")
+def fetch_all():
+    results = update_all_datasets(max_retries=2, sleep_seconds=2)
+    failed = [result for result in results if result["status"] == "failed"]
+
+    return {
+        "status": "completed_with_errors" if failed else "completed",
+        "updated_count": sum(1 for result in results if result["status"] == "updated"),
+        "failed_count": len(failed),
+        "results": results,
+    }
+
+
+@app.post("/api/exploration")
+def get_exploration_snapshot(request: ExplorationDateRequest):
+    min_date = date(2020, 1, 1)
+    max_date = today_local() - timedelta(days=1)
+
+    if request.target_date < min_date or request.target_date > max_date:
+        raise HTTPException(
+            status_code=400,
+            detail=f"target_date must be between {min_date.isoformat()} and {max_date.isoformat()}",
+        )
+
+    rows = []
+    missing = []
+
+    for province in ProvinceEnum:
+        row = province_weather_on_date(province.value, request.target_date)
+        if row is None:
+            missing.append(province.value)
+        else:
+            rows.append(row)
+
+    if not rows:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No weather data found for {request.target_date.isoformat()}",
+        )
+
+    temps = [row["temp"] for row in rows]
+    humidities = [row["humidity"] for row in rows]
+    wind_speeds = [row["wind_speed"] for row in rows]
+    rain_days = sum(row["rain"] for row in rows)
+
+    return {
+        "date": request.target_date.isoformat(),
+        "province_count": len(rows),
+        "expected_province_count": len(ProvinceEnum),
+        "missing_provinces": missing,
+        "stats": {
+            "avg_temp": round(sum(temps) / len(temps), 2),
+            "min_temp": round(min(temps), 2),
+            "max_temp": round(max(temps), 2),
+            "avg_humidity": round(sum(humidities) / len(humidities), 2),
+            "avg_wind_speed": round(sum(wind_speeds) / len(wind_speeds), 2),
+            "rainy_provinces": int(rain_days),
+        },
+        "temperature_distribution": build_temperature_distribution(rows),
+        "humidity_distribution": build_range_distribution(
+            rows,
+            "humidity",
+            [
+                {"range": "0-20%", "min": 0, "max": 20},
+                {"range": "21-40%", "min": 21, "max": 40},
+                {"range": "41-60%", "min": 41, "max": 60},
+                {"range": "61-80%", "min": 61, "max": 80},
+                {"range": "81-100%", "min": 81, "max": 100},
+            ],
+        ),
+
+        "cloud_cover_distribution": build_range_distribution(
+            rows,
+            "cloud_cover",
+            [
+                {"range": "0-20%", "min": 0, "max": 20},
+                {"range": "21-40%", "min": 21, "max": 40},
+                {"range": "41-60%", "min": 41, "max": 60},
+                {"range": "61-80%", "min": 61, "max": 80},
+                {"range": "81-100%", "min": 81, "max": 100},
+            ],
+        ),
+
+        "wind_distribution": build_range_distribution(
+            rows,
+            "wind_speed",
+            [
+                {"range": "0-10", "min": 0, "max": 10},
+                {"range": "11-20", "min": 11, "max": 20},
+                {"range": "21-30", "min": 21, "max": 30},
+                {"range": "31-40", "min": 31, "max": 40},
+                {"range": "41+", "min": 41, "max": None},
+            ],
+        ),
+
+        "pressure_distribution": build_range_distribution(
+            rows,
+            "pressure",
+            [
+                {"range": "<1000", "min": None, "max": 999},
+                {"range": "1000-1005", "min": 1000, "max": 1005},
+                {"range": "1006-1010", "min": 1006, "max": 1010},
+                {"range": "1011-1015", "min": 1011, "max": 1015},
+                {"range": ">1015", "min": 1016, "max": None},
+            ],
+        ),
+
+        "rain_distribution": [
+            {
+                "range": "No Rain",
+                "count": sum(1 for row in rows if row["rain"] == 0),
+                "provinces": [row["province_label"] for row in rows if row["rain"] == 0],
+            },
+            {
+                "range": "Rain",
+                "count": sum(1 for row in rows if row["rain"] == 1),
+                "provinces": [row["province_label"] for row in rows if row["rain"] == 1],
+            },
+        ],
+        "rows": rows,
+    }
+
+
+@app.post("/api/predict")
+def predict_weather(request: WeatherRequest):
+    province = request.province.value
+    algorithm = request.algorithm.value
+    horizon = request.horizon.value
+    current_date = today_local()
+
+    if request.mode == PredictionMode.evaluation:
+        if request.evaluation_date is None:
+            raise HTTPException(
+                status_code=422,
+                detail="evaluation_date is required when mode='evaluation'",
+            )
+        if request.evaluation_date >= current_date:
+            raise HTTPException(
+                status_code=400,
+                detail="evaluation_date must be earlier than today",
+            )
+        start_date = request.evaluation_date
+    else:
+        start_date = current_date
+
+    df = load_weather_dataframe(province)
+    location = location_by_province(province)
+    latest_observation = latest_observation_before(df, start_date)
+
+    if latest_observation is None:
+        raise HTTPException(
+            status_code=400,
+            detail=f"No historical observations found before {start_date}",
+        )
+
+    yesterday = current_date - timedelta(days=1)
+    data_last_date = max(df["date"])
+    data_is_fresh = data_last_date >= yesterday
+
+    predictions = [
+        predict_one(
+            df=df,
+            province=province,
+            algorithm=algorithm,
+            anchor_date=start_date,
+            target_date=start_date + timedelta(days=day_index),
+            day_number=day_index + 1,
+        )
+        for day_index in range(horizon)
+    ]
+
+    comparable = [item for item in predictions if item["is_correct"] is not None]
+    accuracy_summary = None
+    if comparable:
+        correct = sum(1 for item in comparable if item["is_correct"])
+        accuracy_summary = {
+            "correct": correct,
+            "total": len(comparable),
+            "accuracy": round(correct / len(comparable) * 100, 2),
+        }
+
+    return {
+        "province": province,
+        "province_label": PROVINCE_LABELS.get(province, province),
+        "latitude": location["latitude"],
+        "longitude": location["longitude"],
+        "algorithm_requested": algorithm,
+        "horizon": horizon,
+        "mode": request.mode.value,
+        "start_date": start_date.isoformat(),
+        "data_last_date": data_last_date.isoformat(),
+        "data_is_fresh": data_is_fresh,
+        "latest_observation": latest_observation,
+        "predictions": predictions,
+        "accuracy_summary": accuracy_summary,
+    }
+ 
+ 
+======================================== 
+FILE: D:\B ch khoa\Intelligence System\Weather Forecast Dashboard UI\backend\fetch_data\fetch.py 
+======================================== 
+import time
+from datetime import datetime, timedelta
+from pathlib import Path
+
+import pandas as pd
+import requests
+
+# ==========================================
+# VIETNAM PROVINCES
+# ==========================================
+
+locations = [
+    {"destination": "Ha_Noi", "latitude": 21.0285, "longitude": 105.8542},
+    {"destination": "Hue", "latitude": 16.4637, "longitude": 107.5909},
+    {"destination": "Lai_Chau", "latitude": 22.3964, "longitude": 103.4582},
+    {"destination": "Dien_Bien", "latitude": 21.3860, "longitude": 103.0230},
+    {"destination": "Son_La", "latitude": 21.3256, "longitude": 103.9188},
+    {"destination": "Lang_Son", "latitude": 21.8537, "longitude": 106.7610},
+    {"destination": "Quang_Ninh", "latitude": 21.0064, "longitude": 107.2925},
+    {"destination": "Thanh_Hoa", "latitude": 19.8067, "longitude": 105.7852},
+    {"destination": "Nghe_An", "latitude": 18.6796, "longitude": 105.6813},
+    {"destination": "Ha_Tinh", "latitude": 18.3550, "longitude": 105.8877},
+    {"destination": "Cao_Bang", "latitude": 22.6667, "longitude": 106.2500},
+    {"destination": "Tuyen_Quang", "latitude": 21.8233, "longitude": 105.2181},
+    {"destination": "Lao_Cai", "latitude": 22.4856, "longitude": 103.9707},
+    {"destination": "Thai_Nguyen", "latitude": 21.5942, "longitude": 105.8482},
+    {"destination": "Phu_Tho", "latitude": 21.3227, "longitude": 105.4010},
+    {"destination": "Bac_Ninh", "latitude": 21.1861, "longitude": 106.0763},
+    {"destination": "Hung_Yen", "latitude": 20.6464, "longitude": 106.0511},
+    {"destination": "Hai_Phong", "latitude": 20.8449, "longitude": 106.6881},
+    {"destination": "Ninh_Binh", "latitude": 20.2506, "longitude": 105.9745},
+    {"destination": "Quang_Tri", "latitude": 16.7500, "longitude": 107.2000},
+    {"destination": "Da_Nang", "latitude": 16.0544, "longitude": 108.2022},
+    {"destination": "Quang_Ngai", "latitude": 15.1214, "longitude": 108.8044},
+    {"destination": "Gia_Lai", "latitude": 13.9833, "longitude": 108.0000},
+    {"destination": "Khanh_Hoa", "latitude": 12.2388, "longitude": 109.1967},
+    {"destination": "Lam_Dong", "latitude": 11.9404, "longitude": 108.4583},
+    {"destination": "Dak_Lak", "latitude": 12.7100, "longitude": 108.2378},
+    {"destination": "Ho_Chi_Minh", "latitude": 10.8231, "longitude": 106.6297},
+    {"destination": "Dong_Nai", "latitude": 10.9453, "longitude": 106.8240},
+    {"destination": "Tay_Ninh", "latitude": 11.3352, "longitude": 106.1099},
+    {"destination": "Can_Tho", "latitude": 10.0452, "longitude": 105.7469},
+    {"destination": "Vinh_Long", "latitude": 10.2537, "longitude": 105.9722},
+    {"destination": "Dong_Thap", "latitude": 10.4938, "longitude": 105.6881},
+    {"destination": "Ca_Mau", "latitude": 9.1769, "longitude": 105.1524},
+    {"destination": "An_Giang", "latitude": 10.5216, "longitude": 105.1259},
+]
+
+# ==========================================
+# ROOT FOLDERS
+# ==========================================
+
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
+ROOT = BACKEND_ROOT / "load_weather_data"
+
+ALL_ROOT = ROOT / "all"
+TRAIN_ROOT = ROOT / "train"
+TEST_ROOT = ROOT / "test"
+
+ALL_ROOT.mkdir(parents=True, exist_ok=True)
+TRAIN_ROOT.mkdir(parents=True, exist_ok=True)
+TEST_ROOT.mkdir(parents=True, exist_ok=True)
+
+# ==========================================
+# DATE RANGE
+# ==========================================
+
+ALL_START = "2020-01-01"
+TRAIN_START = "2020-01-01"
+TRAIN_END = "2025-12-31"
+TEST_START = "2026-01-01"
+TEST_END = "2026-04-30"
+
+
+def yesterday_string():
+    return (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+
+
+# ==========================================
+# FETCH WEATHER FUNCTION
+# ==========================================
+
+def fetch_weather_data(location, start_date, end_date, max_retries=3, sleep_seconds=10):
+    destination = location["destination"]
+    latitude = location["latitude"]
+    longitude = location["longitude"]
+
+    if pd.to_datetime(start_date) > pd.to_datetime(end_date):
+        return pd.DataFrame()
+
+    print("=" * 60)
+    print(f"Fetching: {destination}")
+    print(f"Date: {start_date} -> {end_date}")
+
+    url = (
+        "https://archive-api.open-meteo.com/v1/archive?"
+        f"latitude={latitude}"
+        f"&longitude={longitude}"
+        f"&start_date={start_date}"
+        f"&end_date={end_date}"
+        "&daily="
+        "temperature_2m_mean,"
+        "relative_humidity_2m_mean,"
+        "wind_speed_10m_max,"
+        "cloud_cover_mean,"
+        "surface_pressure_mean,"
+        "precipitation_sum"
+        "&timezone=Asia%2FBangkok"
+    )
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            response = requests.get(url, timeout=30)
+
+            if response.status_code != 200:
+                print(f"FAILED: {destination}")
+                print(f"STATUS CODE: {response.status_code}")
+                if attempt < max_retries:
+                    print(f"Sleep {sleep_seconds}s then retry...")
+                    time.sleep(sleep_seconds)
+                continue
+
+            data = response.json()
+
+            if "daily" not in data:
+                print(f"NO DATA: {destination}")
+                if attempt < max_retries:
+                    print(f"Sleep {sleep_seconds}s then retry...")
+                    time.sleep(sleep_seconds)
+                continue
+
+            daily = data["daily"]
+            df = pd.DataFrame({
+                "date": daily["time"],
+                "destination": destination,
+                "latitude": latitude,
+                "longitude": longitude,
+                "temp": daily["temperature_2m_mean"],
+                "humidity": daily["relative_humidity_2m_mean"],
+                "wind_speed": daily["wind_speed_10m_max"],
+                "cloud_cover": daily["cloud_cover_mean"],
+                "pressure": daily["surface_pressure_mean"],
+                "precipitation_sum": daily["precipitation_sum"],
+            })
+
+            df["rain"] = df["precipitation_sum"].apply(lambda x: 1 if x > 0 else 0)
+            df.drop(columns=["precipitation_sum"], inplace=True)
+            df.dropna(inplace=True)
+
+            print(f"Rows: {len(df)}")
+            return df
+
+        except Exception as exc:
+            print(f"ERROR: {destination}")
+            print(exc)
+            if attempt < max_retries:
+                print(f"Sleep {sleep_seconds}s then retry...")
+                time.sleep(sleep_seconds)
+
+    return None
+
+
+# ==========================================
+# SAVE DATASET
+# ==========================================
+
+def save_dataset(df, folder_root, destination, filename):
+    province_folder = folder_root / destination
+    province_folder.mkdir(parents=True, exist_ok=True)
+
+    output_path = province_folder / filename
+    df.to_csv(output_path, index=False, encoding="utf-8-sig")
+
+    print(f"Saved: {output_path}")
+
+
+def split_and_save_dataset(df_all, destination):
+    df_all = df_all.copy()
+    df_all["date"] = pd.to_datetime(df_all["date"]).dt.strftime("%Y-%m-%d")
+    df_all = df_all.sort_values("date").reset_index(drop=True)
+
+    save_dataset(df_all, ALL_ROOT, destination, "all_weather.csv")
+
+    train_df = df_all[
+        (df_all["date"] >= TRAIN_START) &
+        (df_all["date"] <= TRAIN_END)
+    ]
+    save_dataset(train_df, TRAIN_ROOT, destination, "train_weather.csv")
+
+    test_df = df_all[
+        (df_all["date"] >= TEST_START) &
+        (df_all["date"] <= TEST_END)
+    ]
+    save_dataset(test_df, TEST_ROOT, destination, "test_weather.csv")
+
+
+def update_location_dataset(location, end_date=None, max_retries=3, sleep_seconds=10):
+    destination = location["destination"]
+    end_date = end_date or yesterday_string()
+    all_path = ALL_ROOT / destination / "all_weather.csv"
+
+    existing_df = None
+    last_date_before = None
+
+    if all_path.exists():
+        existing_df = pd.read_csv(all_path)
+        if not existing_df.empty:
+            existing_df["date"] = pd.to_datetime(existing_df["date"]).dt.strftime("%Y-%m-%d")
+            last_date_before = existing_df["date"].max()
+            start_date = (
+                pd.to_datetime(last_date_before) + pd.Timedelta(days=1)
+            ).strftime("%Y-%m-%d")
+        else:
+            start_date = ALL_START
+    else:
+        start_date = ALL_START
+
+    if pd.to_datetime(start_date) > pd.to_datetime(end_date):
+        return {
+            "province": destination,
+            "status": "up_to_date",
+            "start_date": start_date,
+            "end_date": end_date,
+            "last_date_before": last_date_before,
+            "last_date_after": last_date_before,
+            "added_rows": 0,
+            "error": None,
+        }
+
+    new_df = fetch_weather_data(
+        location,
+        start_date,
+        end_date,
+        max_retries=max_retries,
+        sleep_seconds=sleep_seconds,
+    )
+
+    if new_df is None:
+        return {
+            "province": destination,
+            "status": "failed",
+            "start_date": start_date,
+            "end_date": end_date,
+            "last_date_before": last_date_before,
+            "last_date_after": last_date_before,
+            "added_rows": 0,
+            "error": "Unable to fetch data from Open-Meteo",
+        }
+
+    combined_df = new_df if existing_df is None else pd.concat(
+        [existing_df, new_df],
+        ignore_index=True,
+    )
+
+    combined_df = (
+        combined_df
+        .drop_duplicates(subset=["date"], keep="last")
+        .sort_values("date")
+        .reset_index(drop=True)
+    )
+
+    split_and_save_dataset(combined_df, destination)
+
+    last_date_after = None if combined_df.empty else combined_df["date"].max()
+
+    return {
+        "province": destination,
+        "status": "updated" if len(new_df) else "up_to_date",
+        "start_date": start_date,
+        "end_date": end_date,
+        "last_date_before": last_date_before,
+        "last_date_after": last_date_after,
+        "added_rows": int(len(new_df)),
+        "error": None,
+    }
+
+
+def update_all_datasets(max_retries=3, sleep_seconds=10):
+    results = []
+
+    for location in locations:
+        results.append(
+            update_location_dataset(
+                location,
+                max_retries=max_retries,
+                sleep_seconds=sleep_seconds,
+            )
+        )
+        time.sleep(1)
+
+    return results
+
+
+def rebuild_all_datasets(max_retries=3, sleep_seconds=10):
+    results = []
+
+    for location in locations:
+        destination = location["destination"]
+
+        print("\n")
+        print("#" * 70)
+        print(f"PROCESSING: {destination}")
+        print("#" * 70)
+
+        df_all = fetch_weather_data(
+            location,
+            ALL_START,
+            yesterday_string(),
+            max_retries=max_retries,
+            sleep_seconds=sleep_seconds,
+        )
+
+        if df_all is None:
+            results.append({
+                "province": destination,
+                "status": "failed",
+                "added_rows": 0,
+                "error": "Unable to fetch data from Open-Meteo",
+            })
+            continue
+
+        split_and_save_dataset(df_all, destination)
+        results.append({
+            "province": destination,
+            "status": "updated",
+            "added_rows": int(len(df_all)),
+            "error": None,
+        })
+
+        time.sleep(1)
+
+    return results
+
+
+# ==========================================
+# MAIN
+# ==========================================
+
+if __name__ == "__main__":
+    update_all_datasets()
+    print("\nDONE")
+ 
+ 
+======================================== 
+FILE: D:\B ch khoa\Intelligence System\Weather Forecast Dashboard UI\backend\ml_pipeline\utils\data_loader.py 
+======================================== 
+from pathlib import Path
+import pandas as pd
+
+
+# ==========================================
+# PROJECT ROOT
+# ==========================================
+
+PROJECT_ROOT = (
+    Path(__file__)
+    .resolve()
+    .parents[2]
+)
+
+# ==========================================
+# DATA ROOT
+# ==========================================
+
+DATA_ROOT = (
+    PROJECT_ROOT /
+    "load_weather_data" /
+    "all"
+)
+
+DATA_PROVINCES = [
+'An_Giang',
+'Bac_Ninh',
+'Can_Tho',
+'Cao_Bang',
+'Ca_Mau',
+'Dak_Lak',
+'Da_Nang',
+'Dien_Bien',
+'Dong_Nai',
+'Dong_Thap',
+'Gia_Lai',
+'Hai_Phong',
+'Ha_Noi',
+'Ha_Tinh',
+'Ho_Chi_Minh',
+'Hue',
+'Hung_Yen',
+'Khanh_Hoa',
+'Lai_Chau',
+'Lam_Dong',
+'Lang_Son',
+'Lao_Cai',
+'Nghe_An',
+'Ninh_Binh',
+'Phu_Tho',
+'Quang_Ngai',
+'Quang_Ninh',
+'Quang_Tri',
+'Son_La',
+'Tay_Ninh',
+'Thai_Nguyen',
+'Thanh_Hoa',
+'Tuyen_Quang',
+'Vinh_Long'
+]
+
+def load_province_data(province_name):
+
+    csv_path = (
+        DATA_ROOT /
+        province_name /
+        "all_weather.csv"
+    )
+
+    df = pd.read_csv(csv_path)
+
+    # parse datetime
+    df["date"] = pd.to_datetime(df["date"])
+
+    # sort by time
+    df = df.sort_values("date")
+
+    # remove duplicates
+    df = df.drop_duplicates()
+
+    # reset index
+    df = df.reset_index(drop=True)
+
+    return df 
+ 
+======================================== 
+FILE: D:\B ch khoa\Intelligence System\Weather Forecast Dashboard UI\backend\ml_pipeline\utils\evaluation.py 
+======================================== 
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    roc_auc_score,
+    confusion_matrix,
+    classification_report,
+    roc_curve
+)
+
+
+# ==========================================
+# EVALUATE MODEL
+# ==========================================
+
+def evaluate_model(
+    y_test,
+    y_pred,
+    y_prob
+):
+    """
+    Calculate evaluation metrics.
+    """
+
+    metrics = {
+
+        "accuracy":
+            accuracy_score(y_test, y_pred),
+
+        "precision":
+            precision_score(y_test, y_pred),
+
+        "recall":
+            recall_score(y_test, y_pred),
+
+        "f1":
+            f1_score(y_test, y_pred),
+
+        "roc_auc":
+            roc_auc_score(y_test, y_prob)
+    }
+
+    return metrics
+
+
+# ==========================================
+# PRINT CLASSIFICATION REPORT
+# ==========================================
+
+def print_report(
+    y_test,
+    y_pred
+):
+
+    print("\nClassification Report\n")
+
+    print(
+        classification_report(
+            y_test,
+            y_pred
+        )
+    )
+
+
+# ==========================================
+# PLOT CONFUSION MATRIX
+# ==========================================
+
+def plot_confusion_matrix_chart(
+    y_test,
+    y_pred,
+    province_name,
+    lookback
+):
+
+    cm = confusion_matrix(
+        y_test,
+        y_pred
+    )
+
+    plt.figure(figsize=(6, 5))
+
+    sns.heatmap(
+        cm,
+        annot=True,
+        fmt="d",
+        cmap="Blues"
+    )
+
+    plt.title(
+        f"Confusion Matrix\n"
+        f"{province_name} | "
+        f"Lookback={lookback}"
+    )
+
+    plt.xlabel("Predicted")
+    plt.ylabel("Actual")
+
+    plt.show()
+
+
+# ==========================================
+# PLOT ROC CURVE
+# ==========================================
+
+def plot_roc_curve_chart(
+    y_test,
+    y_prob,
+    province_name,
+    lookback
+):
+
+    fpr, tpr, _ = roc_curve(
+        y_test,
+        y_prob
+    )
+
+    auc_score = roc_auc_score(
+        y_test,
+        y_prob
+    )
+
+    plt.figure(figsize=(6, 5))
+
+    plt.plot(
+        fpr,
+        tpr,
+        label=f"AUC = {auc_score:.4f}"
+    )
+
+    plt.plot(
+        [0, 1],
+        [0, 1],
+        linestyle="--"
+    )
+
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+
+    plt.title(
+        f"ROC Curve\n"
+        f"{province_name} | "
+        f"Lookback={lookback}"
+    )
+
+    plt.legend()
+
+    plt.show()
+
+
+# ==========================================
+# CREATE RESULT ROW
+# ==========================================
+
+def create_result_row(
+    province,
+    lookback,
+    forecast_horizon,
+    metrics
+):
+
+    return {
+
+        "province":
+            province,
+
+        "forecast_horizon":
+            forecast_horizon,
+
+        "lookback":
+            lookback,
+
+        "accuracy":
+            metrics["accuracy"],
+
+        "precision":
+            metrics["precision"],
+
+        "recall":
+            metrics["recall"],
+
+        "f1":
+            metrics["f1"],
+
+        "roc_auc":
+            metrics["roc_auc"]
+    }
+
+
+# ==========================================
+# CREATE RESULTS DATAFRAME
+# ==========================================
+
+def create_results_dataframe(
+    results_list
+):
+
+    df = pd.DataFrame(results_list)
+
+    return df
+
+
+# ==========================================
+# RANK MODELS
+# ==========================================
+
+def rank_models(
+    results_df
+):
+
+    ranked_df = results_df.sort_values(
+        by=[
+            "f1",
+            "roc_auc"
+        ],
+        ascending=False
+    )
+
+    ranked_df = ranked_df.reset_index(
+        drop=True
+    )
+
+    return ranked_df
+
+
+# ==========================================
+# GET TOP MODELS
+# ==========================================
+
+def get_top_models(
+    ranked_df,
+    top_k=3
+):
+
+    return ranked_df.head(top_k) 
+ 
+======================================== 
+FILE: D:\B ch khoa\Intelligence System\Weather Forecast Dashboard UI\backend\ml_pipeline\utils\feature_engineering.py 
+======================================== 
+from typing import Tuple
+
+import pandas as pd
+
+
+# ==========================================
+# FEATURE CONFIG
+# ==========================================
+
+FEATURE_COLUMNS = [
+    "temp",
+    "humidity",
+    "wind_speed",
+    "cloud_cover",
+    "pressure"
+]
+
+TARGET_COLUMN = "rain"
+
+TRAIN_END_DATE = "2025-12-31"
+TEST_START_DATE = "2026-01-01"
+FORECAST_HORIZONS = [7]
+
+
+# ==========================================
+# CREATE TARGET
+# ==========================================
+
+def create_target(
+    df: pd.DataFrame,
+    forecast_horizon: int
+) -> pd.DataFrame:
+    """
+    Predict next-day rain.
+
+    Example:
+    data of 2025-12-31
+    -> predict rain of 2026-01-01
+    """
+
+    df = df.copy()
+
+    # next-day rain
+    df["target"] = (
+    df[TARGET_COLUMN]
+    .shift(-forecast_horizon)
+)
+
+    return df
+
+
+# ==========================================
+# CREATE LAG FEATURES
+# ==========================================
+
+def create_lag_features(
+    df: pd.DataFrame,
+    lookback: int
+) -> pd.DataFrame:
+    """
+    Create lag features for time series.
+    """
+
+    df = df.copy()
+
+    lag_feature_dict = {}
+
+    for feature in FEATURE_COLUMNS:
+
+        for lag in range(1, lookback + 1):
+
+            lag_column_name = (
+                f"{feature}_lag_{lag}"
+            )
+
+            lag_feature_dict[
+                lag_column_name
+            ] = df[feature].shift(lag)
+
+    lag_df = pd.DataFrame(
+        lag_feature_dict
+    )
+
+    df = pd.concat(
+        [df, lag_df],
+        axis=1
+    )
+
+    return df
+
+# ==========================================
+# REMOVE INVALID ROWS
+# ==========================================
+
+def clean_dataframe(
+    df: pd.DataFrame
+) -> pd.DataFrame:
+    """
+    Remove rows containing NaN
+    caused by lag creation and target shifting.
+    """
+
+    df = df.copy()
+
+    df = df.dropna()
+
+    df = df.reset_index(drop=True)
+
+    return df
+
+
+# ==========================================
+# PREPARE FULL DATASET
+# ==========================================
+
+def prepare_dataset(
+    df: pd.DataFrame,
+    lookback: int,
+    forecast_horizon: int
+) -> pd.DataFrame:
+    """
+    Full feature engineering pipeline.
+
+    Steps:
+    1. create target
+    2. create lag features
+    3. remove invalid rows
+    """
+
+    df = df.copy()
+
+    # chronological order
+    df = df.sort_values("date")
+
+    # create target
+    df = create_target(
+    df=df,
+    forecast_horizon=forecast_horizon
+)
+
+    # create lag features
+    df = create_lag_features(
+        df=df,
+        lookback=lookback
+    )
+
+    # remove NaN
+    df = clean_dataframe(df)
+
+    return df
+
+
+# ==========================================
+# GET FEATURE COLUMNS
+# ==========================================
+
+def get_feature_columns(
+    lookback: int
+) -> list:
+    """
+    Return all generated lag columns.
+    """
+
+    feature_list = []
+
+    for feature in FEATURE_COLUMNS:
+
+        for lag in range(1, lookback + 1):
+
+            feature_list.append(
+                f"{feature}_lag_{lag}"
+            )
+
+    return feature_list
+
+
+# ==========================================
+# TRAIN TEST SPLIT
+# ==========================================
+
+def split_train_test(
+    df: pd.DataFrame,
+    lookback: int
+) -> Tuple:
+
+    df = df.copy()
+
+    feature_columns = get_feature_columns(
+        lookback
+    )
+
+    # ======================================
+    # TRAIN
+    # ======================================
+
+    train_df = df[
+        df["date"] <= TRAIN_END_DATE
+    ]
+
+    # ======================================
+    # TEST
+    # ======================================
+
+    test_df = df[
+        df["date"] >= TEST_START_DATE
+    ]
+
+    # ======================================
+    # X AND y
+    # ======================================
+
+    X_train = train_df[feature_columns]
+
+    y_train = train_df["target"]
+
+    X_test = test_df[feature_columns]
+
+    y_test = test_df["target"]
+
+    return (
+        X_train,
+        X_test,
+        y_train,
+        y_test,
+        train_df,
+        test_df
+    )
+
+
+# ==========================================
+# COMPLETE PIPELINE
+# ==========================================
+
+def prepare_train_test_data(
+    df: pd.DataFrame,
+    lookback: int,
+    forecast_horizon: int
+):
+    """
+    Complete pipeline:
+
+    raw dataframe
+    ->
+    target
+    ->
+    lag features
+    ->
+    clean
+    ->
+    split train/test
+    """
+
+    processed_df = prepare_dataset(
+        df=df,
+        lookback=lookback,
+        forecast_horizon=forecast_horizon
+    )
+
+    return split_train_test(
+        df=processed_df,
+        lookback=lookback
+    ) 
+ 
+======================================== 
+FILE: D:\B ch khoa\Intelligence System\Weather Forecast Dashboard UI\backend\ml_pipeline\utils\save_model.py 
+======================================== 
+import json
+from pathlib import Path
+
+import joblib
+
+# ==========================================
+# BASE PATH
+# ==========================================
+
+BASE_DIR = Path(__file__).resolve().parents[2]
+
+ML_PIPELINE_ROOT = (
+    BASE_DIR /
+    "ml_pipeline"
+)
+
+# ==========================================
+# CREATE MODEL DIRECTORY
+# ==========================================
+
+
+def create_model_directory(
+    algorithm_name,
+    province_name,
+    forecast_horizon,
+    model_rank
+):
+    model_path = (
+        ML_PIPELINE_ROOT /
+        algorithm_name /
+        "models" /
+        province_name /
+        f"horizon_{forecast_horizon}" /
+        f"model_{model_rank}"
+    )
+
+    model_path.mkdir(parents=True, exist_ok=True)
+
+    return model_path
+
+
+# ==========================================
+# SAVE MODEL
+# ==========================================
+
+
+def save_model(model, save_path, filename="model.pkl"):
+
+    joblib.dump(model, save_path / filename)
+
+
+# ==========================================
+# SAVE METADATA
+# ==========================================
+
+
+def save_metadata(metadata, save_path):
+
+    metadata_path = save_path / "metadata.json"
+
+    with open(metadata_path, "w", encoding="utf-8") as f:
+
+        json.dump(metadata, f, indent=4, ensure_ascii=False)
+
+
+# ==========================================
+# LOAD MODEL
+# ==========================================
+
+
+def load_model(model_path):
+
+    return joblib.load(model_path)
+
+
+# ==========================================
+# SAVE COMPLETE MODEL PACKAGE
+# ==========================================
+
+
+def save_complete_model_package(
+    algorithm_name,
+    province_name,
+    forecast_horizon,
+    model_rank,
+    model,
+    metadata
+):
+
+    save_path = create_model_directory(
+
+        algorithm_name=
+            algorithm_name,
+
+        province_name=
+            province_name,
+
+        forecast_horizon=
+            forecast_horizon,
+
+        model_rank=
+            model_rank,
+    )
+
+    # save model
+    save_model(model=model, save_path=save_path)
+
+    # save metadata
+    save_metadata(metadata=metadata, save_path=save_path)
+
+    print(f"\nSaved model to:\n{save_path}")
+ 
+ 

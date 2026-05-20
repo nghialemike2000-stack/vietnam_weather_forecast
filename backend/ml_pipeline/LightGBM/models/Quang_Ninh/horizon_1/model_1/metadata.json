@@ -1,0 +1,12 @@
+{
+    "province": "Quang_Ninh",
+    "model_rank": 1,
+    "algorithm": "LightGBM",
+    "lookback": 30,
+    "forecast_horizon": 1,
+    "accuracy": 0.6717557251908397,
+    "precision": 0.696969696969697,
+    "recall": 0.8414634146341463,
+    "f1": 0.7624309392265194,
+    "roc_auc": 0.6207068193130911
+}

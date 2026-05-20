@@ -1,0 +1,12 @@
+{
+    "province": "Ha_Noi",
+    "model_rank": 2,
+    "algorithm": "XGBoost",
+    "lookback": 30,
+    "forecast_horizon": 7,
+    "accuracy": 0.672,
+    "precision": 0.7217391304347827,
+    "recall": 0.9021739130434783,
+    "f1": 0.8019323671497585,
+    "roc_auc": 0.4776021080368906
+}

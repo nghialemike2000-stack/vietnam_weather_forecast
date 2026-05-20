@@ -1,0 +1,12 @@
+{
+    "province": "Lam_Dong",
+    "model_rank": 3,
+    "algorithm": "XGBoost",
+    "lookback": 5,
+    "forecast_horizon": 1,
+    "accuracy": 0.6259541984732825,
+    "precision": 0.65625,
+    "recall": 0.6086956521739131,
+    "f1": 0.631578947368421,
+    "roc_auc": 0.6701729780271155
+}

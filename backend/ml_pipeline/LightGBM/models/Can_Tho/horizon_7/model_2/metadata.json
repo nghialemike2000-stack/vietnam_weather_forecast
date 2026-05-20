@@ -1,0 +1,12 @@
+{
+    "province": "Can_Tho",
+    "model_rank": 2,
+    "algorithm": "LightGBM",
+    "lookback": 30,
+    "forecast_horizon": 7,
+    "accuracy": 0.56,
+    "precision": 0.6021505376344086,
+    "recall": 0.7567567567567568,
+    "f1": 0.6706586826347305,
+    "roc_auc": 0.5042395336512984
+}

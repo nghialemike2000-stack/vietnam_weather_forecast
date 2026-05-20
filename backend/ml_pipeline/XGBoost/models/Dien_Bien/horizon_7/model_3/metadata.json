@@ -1,0 +1,12 @@
+{
+    "province": "Dien_Bien",
+    "model_rank": 3,
+    "algorithm": "XGBoost",
+    "lookback": 10,
+    "forecast_horizon": 7,
+    "accuracy": 0.6,
+    "precision": 0.6181818181818182,
+    "recall": 0.5396825396825397,
+    "f1": 0.576271186440678,
+    "roc_auc": 0.6559139784946236
+}

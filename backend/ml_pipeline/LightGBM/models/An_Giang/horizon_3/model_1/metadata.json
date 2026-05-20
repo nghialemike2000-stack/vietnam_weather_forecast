@@ -1,0 +1,12 @@
+{
+    "province": "An_Giang",
+    "model_rank": 1,
+    "algorithm": "LightGBM",
+    "lookback": 7,
+    "forecast_horizon": 3,
+    "accuracy": 0.6511627906976745,
+    "precision": 0.6282051282051282,
+    "recall": 0.7538461538461538,
+    "f1": 0.6853146853146853,
+    "roc_auc": 0.6959134615384615
+}

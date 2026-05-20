@@ -1,0 +1,12 @@
+{
+    "province": "Hung_Yen",
+    "model_rank": 2,
+    "algorithm": "RandomForest",
+    "lookback": 15,
+    "forecast_horizon": 3,
+    "accuracy": 0.5968992248062015,
+    "precision": 0.717391304347826,
+    "recall": 0.717391304347826,
+    "f1": 0.717391304347826,
+    "roc_auc": 0.4391891891891892
+}

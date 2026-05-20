@@ -1,0 +1,12 @@
+{
+    "province": "Phu_Tho",
+    "model_rank": 1,
+    "algorithm": "LightGBM",
+    "lookback": 30,
+    "forecast_horizon": 7,
+    "accuracy": 0.568,
+    "precision": 0.5945945945945946,
+    "recall": 0.88,
+    "f1": 0.7096774193548387,
+    "roc_auc": 0.46373333333333333
+}

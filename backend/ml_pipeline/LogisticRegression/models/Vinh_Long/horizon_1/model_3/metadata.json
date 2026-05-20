@@ -1,0 +1,12 @@
+{
+    "province": "Vinh_Long",
+    "model_rank": 3,
+    "algorithm": "LogisticRegression",
+    "lookback": 7,
+    "forecast_horizon": 1,
+    "accuracy": 0.5725190839694656,
+    "precision": 0.75,
+    "recall": 0.22727272727272727,
+    "f1": 0.3488372093023256,
+    "roc_auc": 0.5435897435897435
+}

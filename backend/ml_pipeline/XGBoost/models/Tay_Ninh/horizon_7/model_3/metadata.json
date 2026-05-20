@@ -1,0 +1,12 @@
+{
+    "province": "Tay_Ninh",
+    "model_rank": 3,
+    "algorithm": "XGBoost",
+    "lookback": 30,
+    "forecast_horizon": 7,
+    "accuracy": 0.624,
+    "precision": 0.5846153846153846,
+    "recall": 0.6551724137931034,
+    "f1": 0.6178861788617886,
+    "roc_auc": 0.6865671641791045
+}

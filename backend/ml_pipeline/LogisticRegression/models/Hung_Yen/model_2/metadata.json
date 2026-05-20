@@ -1,0 +1,11 @@
+{
+    "province": "Hung_Yen",
+    "model_rank": 2,
+    "algorithm": "LogisticRegression",
+    "lookback": 7,
+    "accuracy": 0.46511627906976744,
+    "precision": 0.7346938775510204,
+    "recall": 0.391304347826087,
+    "f1": 0.5106382978723404,
+    "roc_auc": 0.49265569917743823
+}

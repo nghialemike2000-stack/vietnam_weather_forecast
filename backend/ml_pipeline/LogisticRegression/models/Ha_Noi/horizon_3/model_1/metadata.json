@@ -1,0 +1,12 @@
+{
+    "province": "Ha_Noi",
+    "model_rank": 1,
+    "algorithm": "LogisticRegression",
+    "lookback": 30,
+    "forecast_horizon": 3,
+    "accuracy": 0.5581395348837209,
+    "precision": 0.7567567567567568,
+    "recall": 0.5894736842105263,
+    "f1": 0.6627218934911243,
+    "roc_auc": 0.4780185758513933
+}

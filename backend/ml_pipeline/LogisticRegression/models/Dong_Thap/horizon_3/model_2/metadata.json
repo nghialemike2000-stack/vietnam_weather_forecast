@@ -1,0 +1,12 @@
+{
+    "province": "Dong_Thap",
+    "model_rank": 2,
+    "algorithm": "LogisticRegression",
+    "lookback": 15,
+    "forecast_horizon": 3,
+    "accuracy": 0.5426356589147286,
+    "precision": 1.0,
+    "recall": 0.1917808219178082,
+    "f1": 0.3218390804597701,
+    "roc_auc": 0.5821917808219178
+}

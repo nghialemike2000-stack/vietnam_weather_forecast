@@ -1,0 +1,294 @@
+======================================== 
+FILE: D:\B�ch khoa\Intelligence System\Weather Forecast Dashboard UI\frontend\src\app\weatherApi.ts 
+======================================== 
+import { WeatherRequestPayload } from './weatherConfig';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000';
+
+export interface LatestObservation {
+  date: string;
+  temp: number;
+  humidity: number;
+  wind_speed: number;
+  cloud_cover: number;
+  pressure: number;
+  rain: number;
+}
+
+export interface PredictionItem {
+  date: string;
+  day_number: number;
+  predicted_rain: number;
+  result: 'rain' | 'no-rain';
+  rain_probability: number;
+  confidence: number;
+  actual_rain: number | null;
+  is_correct: boolean | null;
+  algorithm: string;
+  model_horizon: number;
+  model_rank: number;
+  lookback: number;
+  metrics: {
+    accuracy: number;
+    precision: number;
+    recall: number;
+    f1: number;
+    roc_auc: number;
+  };
+}
+
+export interface WeatherPredictionResponse {
+  province: string;
+  province_label: string;
+  latitude: number;
+  longitude: number;
+  algorithm_requested: string;
+  horizon: number;
+  mode: 'forecast' | 'evaluation';
+  start_date: string;
+  data_last_date: string;
+  data_is_fresh: boolean;
+  latest_observation: LatestObservation;
+  predictions: PredictionItem[];
+  accuracy_summary: {
+    correct: number;
+    total: number;
+    accuracy: number;
+  } | null;
+}
+
+export interface FetchAllResponse {
+  status: string;
+  updated_count: number;
+  failed_count: number;
+  results: Array<{
+    province: string;
+    status: string;
+    start_date?: string;
+    end_date?: string;
+    last_date_before?: string | null;
+    last_date_after?: string | null;
+    added_rows: number;
+    error?: string | null;
+  }>;
+}
+
+export interface ExplorationRow {
+  province: string;
+  province_label: string;
+  date: string;
+  latitude: number;
+  longitude: number;
+  temp: number;
+  humidity: number;
+  wind_speed: number;
+  cloud_cover: number;
+  pressure: number;
+  rain: number;
+}
+
+type DistributionBucket = {
+  range: string;
+  count: number;
+  provinces: string[];
+};
+
+export interface ExplorationSnapshot {
+  date: string;
+  province_count: number;
+  expected_province_count: number;
+  missing_provinces: string[];
+  stats: {
+    avg_temp: number;
+    min_temp: number;
+    max_temp: number;
+    avg_humidity: number;
+    avg_wind_speed: number;
+    rainy_provinces: number;
+  };
+
+  temperature_distribution: DistributionBucket[];
+  humidity_distribution: DistributionBucket[];
+  cloud_cover_distribution: DistributionBucket[];
+  wind_distribution: DistributionBucket[];
+  pressure_distribution: DistributionBucket[];
+  rain_distribution: DistributionBucket[];
+
+  rows: ExplorationRow[];
+}
+
+async function parseApiResponse<T>(response: Response): Promise<T> {
+  const payload = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const detail = payload?.detail;
+    const message = Array.isArray(detail)
+      ? detail.map((item) => item.msg).join(', ')
+      : detail ?? 'Request failed';
+    throw new Error(message);
+  }
+
+  return payload as T;
+}
+
+export async function predictWeather(payload: WeatherRequestPayload) {
+  const response = await fetch(`${API_BASE_URL}/api/predict`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  return parseApiResponse<WeatherPredictionResponse>(response);
+}
+
+export async function fetchAllWeatherData() {
+  const response = await fetch(`${API_BASE_URL}/api/fetch-all`, {
+    method: 'POST',
+  });
+
+  return parseApiResponse<FetchAllResponse>(response);
+}
+
+export async function fetchExplorationSnapshot(targetDate: string) {
+  const response = await fetch(`${API_BASE_URL}/api/exploration`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ target_date: targetDate }),
+  });
+
+  return parseApiResponse<ExplorationSnapshot>(response);
+} 
+ 
+======================================== 
+FILE: D:\B�ch khoa\Intelligence System\Weather Forecast Dashboard UI\frontend\src\app\weatherConfig.ts 
+======================================== 
+export type Algorithm = 'Best' | 'LightGBM' | 'LogisticRegression' | 'RandomForest' | 'XGBoost';
+export type ForecastMode = 'forecast' | 'evaluation';
+export type Horizon = 1 | 3 | 7;
+
+export interface ProvinceOption {
+  value: string;
+  label: string;
+  latitude: number;
+  longitude: number;
+}
+
+export interface WeatherData {
+  location: string;
+  province: string;
+  provinceLabel: string;
+  dateTime: string;
+  temperature: number;
+  humidity: number;
+  windSpeed: number;
+  cloudCover: number;
+  pressure: number;
+  latitude: number;
+  longitude: number;
+  algorithm: Algorithm;
+  horizon: Horizon;
+  mode: ForecastMode;
+  evaluationDate?: string;
+}
+
+export interface WeatherRequestPayload {
+  province: string;
+  algorithm: Algorithm;
+  horizon: Horizon;
+  mode: ForecastMode;
+  evaluation_date?: string;
+}
+
+export const SUPPORTED_PROVINCES: ProvinceOption[] = [
+  { value: 'An_Giang', label: 'An Giang', latitude: 10.5216, longitude: 105.1259 },
+  { value: 'Bac_Ninh', label: 'Bắc Ninh', latitude: 21.1861, longitude: 106.0763 },
+  { value: 'Can_Tho', label: 'Cần Thơ', latitude: 10.0452, longitude: 105.7469 },
+  { value: 'Cao_Bang', label: 'Cao Bằng', latitude: 22.6667, longitude: 106.25 },
+  { value: 'Ca_Mau', label: 'Cà Mau', latitude: 9.1769, longitude: 105.1524 },
+  { value: 'Dak_Lak', label: 'Đắk Lắk', latitude: 12.71, longitude: 108.2378 },
+  { value: 'Da_Nang', label: 'Đà Nẵng', latitude: 16.0544, longitude: 108.2022 },
+  { value: 'Dien_Bien', label: 'Điện Biên', latitude: 21.386, longitude: 103.023 },
+  { value: 'Dong_Nai', label: 'Đồng Nai', latitude: 10.9453, longitude: 106.824 },
+  { value: 'Dong_Thap', label: 'Đồng Tháp', latitude: 10.4938, longitude: 105.6881 },
+  { value: 'Gia_Lai', label: 'Gia Lai', latitude: 13.9833, longitude: 108 },
+  { value: 'Hai_Phong', label: 'Hải Phòng', latitude: 20.8449, longitude: 106.6881 },
+  { value: 'Ha_Noi', label: 'Hà Nội', latitude: 21.0285, longitude: 105.8542 },
+  { value: 'Ha_Tinh', label: 'Hà Tĩnh', latitude: 18.355, longitude: 105.8877 },
+  { value: 'Ho_Chi_Minh', label: 'Hồ Chí Minh', latitude: 10.8231, longitude: 106.6297 },
+  { value: 'Hue', label: 'Thừa Thiên Huế', latitude: 16.4637, longitude: 107.5909 },
+  { value: 'Hung_Yen', label: 'Hưng Yên', latitude: 20.6464, longitude: 106.0511 },
+  { value: 'Khanh_Hoa', label: 'Khánh Hòa', latitude: 12.2388, longitude: 109.1967 },
+  { value: 'Lai_Chau', label: 'Lai Châu', latitude: 22.3964, longitude: 103.4582 },
+  { value: 'Lam_Dong', label: 'Lâm Đồng', latitude: 11.9404, longitude: 108.4583 },
+  { value: 'Lang_Son', label: 'Lạng Sơn', latitude: 21.8537, longitude: 106.761 },
+  { value: 'Lao_Cai', label: 'Lào Cai', latitude: 22.4856, longitude: 103.9707 },
+  { value: 'Nghe_An', label: 'Nghệ An', latitude: 18.6796, longitude: 105.6813 },
+  { value: 'Ninh_Binh', label: 'Ninh Bình', latitude: 20.2506, longitude: 105.9745 },
+  { value: 'Phu_Tho', label: 'Phú Thọ', latitude: 21.3227, longitude: 105.401 },
+  { value: 'Quang_Ngai', label: 'Quảng Ngãi', latitude: 15.1214, longitude: 108.8044 },
+  { value: 'Quang_Ninh', label: 'Quảng Ninh', latitude: 21.0064, longitude: 107.2925 },
+  { value: 'Quang_Tri', label: 'Quảng Trị', latitude: 16.75, longitude: 107.2 },
+  { value: 'Son_La', label: 'Sơn La', latitude: 21.3256, longitude: 103.9188 },
+  { value: 'Tay_Ninh', label: 'Tây Ninh', latitude: 11.3352, longitude: 106.1099 },
+  { value: 'Thai_Nguyen', label: 'Thái Nguyên', latitude: 21.5942, longitude: 105.8482 },
+  { value: 'Thanh_Hoa', label: 'Thanh Hóa', latitude: 19.8067, longitude: 105.7852 },
+  { value: 'Tuyen_Quang', label: 'Tuyên Quang', latitude: 21.8233, longitude: 105.2181 },
+  { value: 'Vinh_Long', label: 'Vĩnh Long', latitude: 10.2537, longitude: 105.9722 },
+];
+
+export const ALGORITHM_OPTIONS: { value: Algorithm; label: string }[] = [
+  { value: 'Best', label: 'Best model by metric' },
+  { value: 'XGBoost', label: 'XGBoost' },
+  { value: 'LightGBM', label: 'LightGBM' },
+  { value: 'RandomForest', label: 'Random Forest' },
+  { value: 'LogisticRegression', label: 'Logistic Regression' },
+];
+
+export const HORIZON_OPTIONS: { value: Horizon; label: string }[] = [
+  { value: 1, label: '1 day' },
+  { value: 3, label: '3 days' },
+  { value: 7, label: '7 days' },
+];
+
+export function getProvinceOption(value: string) {
+  return SUPPORTED_PROVINCES.find((province) => province.value === value) ?? SUPPORTED_PROVINCES[0];
+}
+ 
+ 
+======================================== 
+FILE: D:\B�ch khoa\Intelligence System\Weather Forecast Dashboard UI\frontend\src\app\components\ui\use-mobile.ts 
+======================================== 
+import * as React from "react";
+
+const MOBILE_BREAKPOINT = 768;
+
+export function useIsMobile() {
+  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(
+    undefined,
+  );
+
+  React.useEffect(() => {
+    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
+    const onChange = () => {
+      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    };
+    mql.addEventListener("change", onChange);
+    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+
+  return !!isMobile;
+}
+ 
+ 
+======================================== 
+FILE: D:\B�ch khoa\Intelligence System\Weather Forecast Dashboard UI\frontend\src\app\components\ui\utils.ts 
+======================================== 
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+ 
+ 

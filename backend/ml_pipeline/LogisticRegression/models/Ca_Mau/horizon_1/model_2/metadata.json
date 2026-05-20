@@ -1,0 +1,12 @@
+{
+    "province": "Ca_Mau",
+    "model_rank": 2,
+    "algorithm": "LogisticRegression",
+    "lookback": 5,
+    "forecast_horizon": 1,
+    "accuracy": 0.42748091603053434,
+    "precision": 1.0,
+    "recall": 0.21875,
+    "f1": 0.358974358974359,
+    "roc_auc": 0.5351190476190476
+}

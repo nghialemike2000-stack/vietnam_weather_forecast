@@ -1,0 +1,12 @@
+{
+    "province": "Nghe_An",
+    "model_rank": 3,
+    "algorithm": "LightGBM",
+    "lookback": 5,
+    "forecast_horizon": 3,
+    "accuracy": 0.5426356589147286,
+    "precision": 0.5462184873949579,
+    "recall": 0.9285714285714286,
+    "f1": 0.6878306878306878,
+    "roc_auc": 0.561501210653753
+}

@@ -1,0 +1,12 @@
+{
+    "province": "Quang_Tri",
+    "model_rank": 1,
+    "algorithm": "XGBoost",
+    "lookback": 7,
+    "forecast_horizon": 1,
+    "accuracy": 0.6717557251908397,
+    "precision": 0.6415094339622641,
+    "recall": 0.9315068493150684,
+    "f1": 0.7597765363128491,
+    "roc_auc": 0.708786017949929
+}

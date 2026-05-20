@@ -1,0 +1,12 @@
+{
+    "province": "Khanh_Hoa",
+    "model_rank": 3,
+    "algorithm": "RandomForest",
+    "lookback": 3,
+    "forecast_horizon": 3,
+    "accuracy": 0.5271317829457365,
+    "precision": 0.5098039215686274,
+    "recall": 0.41935483870967744,
+    "f1": 0.46017699115044247,
+    "roc_auc": 0.5293692826191623
+}

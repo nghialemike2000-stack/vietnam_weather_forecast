@@ -1,0 +1,12 @@
+{
+    "province": "Quang_Ngai",
+    "model_rank": 3,
+    "algorithm": "LightGBM",
+    "lookback": 5,
+    "forecast_horizon": 1,
+    "accuracy": 0.6870229007633588,
+    "precision": 0.675,
+    "recall": 0.782608695652174,
+    "f1": 0.7248322147651006,
+    "roc_auc": 0.7204301075268817
+}

@@ -1,0 +1,12 @@
+{
+    "province": "Ho_Chi_Minh",
+    "model_rank": 3,
+    "algorithm": "LightGBM",
+    "lookback": 3,
+    "forecast_horizon": 3,
+    "accuracy": 0.6201550387596899,
+    "precision": 0.6428571428571429,
+    "recall": 0.6521739130434783,
+    "f1": 0.6474820143884892,
+    "roc_auc": 0.677294685990338
+}

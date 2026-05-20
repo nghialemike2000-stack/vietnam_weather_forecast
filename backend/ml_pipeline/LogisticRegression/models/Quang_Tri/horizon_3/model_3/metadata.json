@@ -1,0 +1,12 @@
+{
+    "province": "Quang_Tri",
+    "model_rank": 3,
+    "algorithm": "LogisticRegression",
+    "lookback": 7,
+    "forecast_horizon": 3,
+    "accuracy": 0.5348837209302325,
+    "precision": 0.7391304347826086,
+    "recall": 0.23943661971830985,
+    "f1": 0.3617021276595745,
+    "roc_auc": 0.6969402622632347
+}

@@ -1,0 +1,12 @@
+{
+    "province": "Da_Nang",
+    "model_rank": 1,
+    "algorithm": "XGBoost",
+    "lookback": 3,
+    "forecast_horizon": 7,
+    "accuracy": 0.552,
+    "precision": 0.5409836065573771,
+    "recall": 1.0,
+    "f1": 0.7021276595744681,
+    "roc_auc": 0.49794555726759115
+}

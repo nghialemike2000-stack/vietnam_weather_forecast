@@ -1,0 +1,12 @@
+{
+    "province": "Tay_Ninh",
+    "model_rank": 1,
+    "algorithm": "LightGBM",
+    "lookback": 15,
+    "forecast_horizon": 7,
+    "accuracy": 0.632,
+    "precision": 0.603448275862069,
+    "recall": 0.603448275862069,
+    "f1": 0.603448275862069,
+    "roc_auc": 0.6634071024189397
+}

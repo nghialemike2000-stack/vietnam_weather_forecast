@@ -1,0 +1,11 @@
+{
+    "province": "Quang_Ngai",
+    "model_rank": 2,
+    "algorithm": "LogisticRegression",
+    "lookback": 7,
+    "accuracy": 0.5736434108527132,
+    "precision": 0.8,
+    "recall": 0.23880597014925373,
+    "f1": 0.367816091954023,
+    "roc_auc": 0.7409725565719789
+}

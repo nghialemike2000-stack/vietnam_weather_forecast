@@ -1,0 +1,12 @@
+{
+    "province": "Phu_Tho",
+    "model_rank": 3,
+    "algorithm": "RandomForest",
+    "lookback": 7,
+    "forecast_horizon": 3,
+    "accuracy": 0.5193798449612403,
+    "precision": 0.6,
+    "recall": 0.5844155844155844,
+    "f1": 0.5921052631578947,
+    "roc_auc": 0.4585414585414585
+}

@@ -1,0 +1,12 @@
+{
+    "province": "Cao_Bang",
+    "model_rank": 3,
+    "algorithm": "XGBoost",
+    "lookback": 7,
+    "forecast_horizon": 1,
+    "accuracy": 0.6717557251908397,
+    "precision": 0.7227722772277227,
+    "recall": 0.8295454545454546,
+    "f1": 0.7724867724867724,
+    "roc_auc": 0.5565539112050739
+}

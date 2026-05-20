@@ -1,0 +1,12 @@
+{
+    "province": "Ha_Tinh",
+    "model_rank": 2,
+    "algorithm": "LogisticRegression",
+    "lookback": 7,
+    "forecast_horizon": 3,
+    "accuracy": 0.49612403100775193,
+    "precision": 0.5238095238095238,
+    "recall": 0.4852941176470588,
+    "f1": 0.5038167938931297,
+    "roc_auc": 0.5043394406943105
+}

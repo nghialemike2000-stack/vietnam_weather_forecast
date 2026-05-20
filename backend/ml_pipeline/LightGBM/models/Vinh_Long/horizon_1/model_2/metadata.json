@@ -1,0 +1,12 @@
+{
+    "province": "Vinh_Long",
+    "model_rank": 2,
+    "algorithm": "LightGBM",
+    "lookback": 15,
+    "forecast_horizon": 1,
+    "accuracy": 0.5038167938931297,
+    "precision": 0.5068493150684932,
+    "recall": 0.5606060606060606,
+    "f1": 0.5323741007194245,
+    "roc_auc": 0.5291375291375291
+}

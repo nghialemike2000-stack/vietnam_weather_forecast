@@ -1,0 +1,12 @@
+{
+    "province": "Lang_Son",
+    "model_rank": 1,
+    "algorithm": "LightGBM",
+    "lookback": 15,
+    "forecast_horizon": 7,
+    "accuracy": 0.536,
+    "precision": 0.5945945945945946,
+    "recall": 0.8354430379746836,
+    "f1": 0.6947368421052632,
+    "roc_auc": 0.34920198128783714
+}

@@ -1,0 +1,12 @@
+{
+    "province": "Dak_Lak",
+    "model_rank": 2,
+    "algorithm": "LightGBM",
+    "lookback": 5,
+    "forecast_horizon": 7,
+    "accuracy": 0.6,
+    "precision": 0.5072463768115942,
+    "recall": 0.6862745098039216,
+    "f1": 0.5833333333333334,
+    "roc_auc": 0.6515633280339163
+}

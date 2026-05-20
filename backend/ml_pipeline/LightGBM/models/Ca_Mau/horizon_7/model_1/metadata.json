@@ -1,0 +1,12 @@
+{
+    "province": "Ca_Mau",
+    "model_rank": 1,
+    "algorithm": "LightGBM",
+    "lookback": 15,
+    "forecast_horizon": 7,
+    "accuracy": 0.712,
+    "precision": 0.7477477477477478,
+    "recall": 0.9120879120879121,
+    "f1": 0.8217821782178217,
+    "roc_auc": 0.539754363283775
+}

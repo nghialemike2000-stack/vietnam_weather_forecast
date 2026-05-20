@@ -1,0 +1,12 @@
+{
+    "province": "Lai_Chau",
+    "model_rank": 3,
+    "algorithm": "XGBoost",
+    "lookback": 15,
+    "forecast_horizon": 3,
+    "accuracy": 0.6511627906976745,
+    "precision": 0.7721518987341772,
+    "recall": 0.6931818181818182,
+    "f1": 0.7305389221556886,
+    "roc_auc": 0.698170731707317
+}

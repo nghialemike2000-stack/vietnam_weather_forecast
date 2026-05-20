@@ -1,0 +1,12 @@
+{
+    "province": "Dong_Thap",
+    "model_rank": 3,
+    "algorithm": "RandomForest",
+    "lookback": 10,
+    "forecast_horizon": 3,
+    "accuracy": 0.5658914728682171,
+    "precision": 0.660377358490566,
+    "recall": 0.4794520547945205,
+    "f1": 0.5555555555555556,
+    "roc_auc": 0.6281800391389433
+}

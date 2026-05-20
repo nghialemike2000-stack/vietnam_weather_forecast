@@ -1,0 +1,12 @@
+{
+    "province": "Son_La",
+    "model_rank": 1,
+    "algorithm": "XGBoost",
+    "lookback": 15,
+    "forecast_horizon": 7,
+    "accuracy": 0.632,
+    "precision": 0.7246376811594203,
+    "recall": 0.6493506493506493,
+    "f1": 0.684931506849315,
+    "roc_auc": 0.6620670995670996
+}

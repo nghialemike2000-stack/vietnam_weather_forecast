@@ -1,0 +1,12 @@
+{
+    "province": "Bac_Ninh",
+    "model_rank": 1,
+    "algorithm": "XGBoost",
+    "lookback": 15,
+    "forecast_horizon": 3,
+    "accuracy": 0.7054263565891473,
+    "precision": 0.7663551401869159,
+    "recall": 0.8631578947368421,
+    "f1": 0.8118811881188119,
+    "roc_auc": 0.6260061919504645
+}

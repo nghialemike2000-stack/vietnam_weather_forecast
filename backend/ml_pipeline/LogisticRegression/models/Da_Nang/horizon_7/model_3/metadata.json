@@ -1,0 +1,12 @@
+{
+    "province": "Da_Nang",
+    "model_rank": 3,
+    "algorithm": "LogisticRegression",
+    "lookback": 5,
+    "forecast_horizon": 7,
+    "accuracy": 0.552,
+    "precision": 0.7083333333333334,
+    "recall": 0.25757575757575757,
+    "f1": 0.37777777777777777,
+    "roc_auc": 0.6289162814586543
+}

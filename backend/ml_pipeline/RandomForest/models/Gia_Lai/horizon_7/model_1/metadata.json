@@ -1,0 +1,12 @@
+{
+    "province": "Gia_Lai",
+    "model_rank": 1,
+    "algorithm": "RandomForest",
+    "lookback": 15,
+    "forecast_horizon": 7,
+    "accuracy": 0.792,
+    "precision": 0.723404255319149,
+    "recall": 0.723404255319149,
+    "f1": 0.723404255319149,
+    "roc_auc": 0.8216039279869067
+}

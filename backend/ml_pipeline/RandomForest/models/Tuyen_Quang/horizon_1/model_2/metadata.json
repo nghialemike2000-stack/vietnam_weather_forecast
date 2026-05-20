@@ -1,0 +1,12 @@
+{
+    "province": "Tuyen_Quang",
+    "model_rank": 2,
+    "algorithm": "RandomForest",
+    "lookback": 5,
+    "forecast_horizon": 1,
+    "accuracy": 0.6793893129770993,
+    "precision": 0.7525773195876289,
+    "recall": 0.8021978021978022,
+    "f1": 0.776595744680851,
+    "roc_auc": 0.6104395604395605
+}

@@ -1,0 +1,12 @@
+{
+    "province": "Lai_Chau",
+    "model_rank": 1,
+    "algorithm": "LogisticRegression",
+    "lookback": 30,
+    "forecast_horizon": 7,
+    "accuracy": 0.504,
+    "precision": 0.7115384615384616,
+    "recall": 0.44047619047619047,
+    "f1": 0.5441176470588235,
+    "roc_auc": 0.5693960511033682
+}

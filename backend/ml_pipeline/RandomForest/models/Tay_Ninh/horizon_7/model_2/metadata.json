@@ -1,0 +1,12 @@
+{
+    "province": "Tay_Ninh",
+    "model_rank": 2,
+    "algorithm": "RandomForest",
+    "lookback": 10,
+    "forecast_horizon": 7,
+    "accuracy": 0.68,
+    "precision": 0.7045454545454546,
+    "recall": 0.5344827586206896,
+    "f1": 0.6078431372549019,
+    "roc_auc": 0.6976325270200721
+}

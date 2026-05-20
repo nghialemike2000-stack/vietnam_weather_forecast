@@ -1,0 +1,12 @@
+{
+    "province": "An_Giang",
+    "model_rank": 2,
+    "algorithm": "LogisticRegression",
+    "lookback": 30,
+    "forecast_horizon": 7,
+    "accuracy": 0.552,
+    "precision": 0.6052631578947368,
+    "recall": 0.359375,
+    "f1": 0.45098039215686275,
+    "roc_auc": 0.5630122950819673
+}

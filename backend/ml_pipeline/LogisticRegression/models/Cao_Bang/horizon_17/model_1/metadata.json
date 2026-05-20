@@ -1,0 +1,12 @@
+{
+    "province": "Cao_Bang",
+    "model_rank": 1,
+    "algorithm": "LogisticRegression",
+    "lookback": 15,
+    "forecast_horizon": 17,
+    "accuracy": 0.5565217391304348,
+    "precision": 0.7586206896551724,
+    "recall": 0.5432098765432098,
+    "f1": 0.6330935251798561,
+    "roc_auc": 0.5936819172113289
+}

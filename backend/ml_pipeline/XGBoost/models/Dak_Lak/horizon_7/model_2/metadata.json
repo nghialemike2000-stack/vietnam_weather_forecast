@@ -1,0 +1,12 @@
+{
+    "province": "Dak_Lak",
+    "model_rank": 2,
+    "algorithm": "XGBoost",
+    "lookback": 15,
+    "forecast_horizon": 7,
+    "accuracy": 0.576,
+    "precision": 0.4857142857142857,
+    "recall": 0.6666666666666666,
+    "f1": 0.5619834710743802,
+    "roc_auc": 0.6367249602543721
+}

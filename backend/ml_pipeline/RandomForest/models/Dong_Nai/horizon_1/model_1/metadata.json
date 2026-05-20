@@ -1,0 +1,12 @@
+{
+    "province": "Dong_Nai",
+    "model_rank": 1,
+    "algorithm": "RandomForest",
+    "lookback": 10,
+    "forecast_horizon": 1,
+    "accuracy": 0.6717557251908397,
+    "precision": 0.6862745098039216,
+    "recall": 0.5645161290322581,
+    "f1": 0.6194690265486725,
+    "roc_auc": 0.7155212716222533
+}

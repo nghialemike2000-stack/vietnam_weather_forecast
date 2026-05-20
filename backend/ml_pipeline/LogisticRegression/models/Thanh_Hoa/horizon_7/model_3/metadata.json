@@ -1,0 +1,12 @@
+{
+    "province": "Thanh_Hoa",
+    "model_rank": 3,
+    "algorithm": "LogisticRegression",
+    "lookback": 3,
+    "forecast_horizon": 7,
+    "accuracy": 0.392,
+    "precision": 0.5405405405405406,
+    "recall": 0.25316455696202533,
+    "f1": 0.3448275862068966,
+    "roc_auc": 0.4452394056136489
+}

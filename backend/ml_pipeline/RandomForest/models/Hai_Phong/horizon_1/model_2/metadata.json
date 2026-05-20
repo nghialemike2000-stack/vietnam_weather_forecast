@@ -1,0 +1,12 @@
+{
+    "province": "Hai_Phong",
+    "model_rank": 2,
+    "algorithm": "RandomForest",
+    "lookback": 15,
+    "forecast_horizon": 1,
+    "accuracy": 0.6564885496183206,
+    "precision": 0.6979166666666666,
+    "recall": 0.8072289156626506,
+    "f1": 0.7486033519553073,
+    "roc_auc": 0.5918674698795181
+}

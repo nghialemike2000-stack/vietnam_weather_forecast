@@ -1,0 +1,12 @@
+{
+    "province": "Ha_Tinh",
+    "model_rank": 1,
+    "algorithm": "XGBoost",
+    "lookback": 15,
+    "forecast_horizon": 7,
+    "accuracy": 0.504,
+    "precision": 0.509090909090909,
+    "recall": 0.875,
+    "f1": 0.6436781609195402,
+    "roc_auc": 0.48796106557377045
+}

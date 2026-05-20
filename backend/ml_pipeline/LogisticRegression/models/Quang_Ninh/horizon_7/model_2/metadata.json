@@ -1,0 +1,12 @@
+{
+    "province": "Quang_Ninh",
+    "model_rank": 2,
+    "algorithm": "LogisticRegression",
+    "lookback": 3,
+    "forecast_horizon": 7,
+    "accuracy": 0.456,
+    "precision": 0.6170212765957447,
+    "recall": 0.3670886075949367,
+    "f1": 0.4603174603174603,
+    "roc_auc": 0.47358282883874514
+}

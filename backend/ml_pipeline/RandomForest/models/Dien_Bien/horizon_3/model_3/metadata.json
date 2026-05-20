@@ -1,0 +1,12 @@
+{
+    "province": "Dien_Bien",
+    "model_rank": 3,
+    "algorithm": "RandomForest",
+    "lookback": 7,
+    "forecast_horizon": 3,
+    "accuracy": 0.6124031007751938,
+    "precision": 0.6521739130434783,
+    "recall": 0.46875,
+    "f1": 0.5454545454545454,
+    "roc_auc": 0.6293269230769231
+}
